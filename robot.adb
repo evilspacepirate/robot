@@ -42,6 +42,7 @@ procedure Robot is
    RED_TEXT    : constant String := Character'Val (16#1B#) & "[31m";
    GREEN_TEXT  : constant String := Character'Val (16#1B#) & "[32m";
    NORMAL_TEXT : constant String := Character'Val (16#1B#) & "[39m";
+   CLEAR_TERM  : constant String := Character'Val (16#1B#) & "c";
 
    Search_Period : constant Duration := 0.25;
 
@@ -50,7 +51,11 @@ procedure Robot is
      Last_Modified : Time;
    end record;
 
-   package Source_Record_Vectors is new Indefinite_Vectors (Natural, Source_Record);
+   type Command_Type is (Clear_Screen, Run_Command, None);
+
+   package Source_Record_Vectors is new
+      Indefinite_Vectors (Natural, Source_Record);
+   use Source_Record_Vectors;
 
    -----------------
    -- Run_Command --
@@ -119,11 +124,16 @@ procedure Robot is
    Old_Fingerprint : Source_Record_Vectors.Vector;
    New_Fingerprint : Source_Record_Vectors.Vector;
 
-   use Source_Record_Vectors;
+   Command         : Command_Type := None;
+
 begin
 
    if Argument_Count < 2 then
-      Put_Line ("usage: robot <command> <file_pattern> [ .. <file_pattern> ]");
+      Put_Line ("Usage: robot <command> <file_pattern> [ .. <file_pattern> ]");
+      New_Line;
+      Put_Line ("Run time commands:");
+      Put_Line (" R-key : Run command");
+      Put_Line (" C-key : Clear terminal");
       return;
    end if;
 
@@ -135,9 +145,37 @@ begin
       New_Fingerprint.Clear;
       Stamp_Sources (New_Fingerprint);
 
+      declare
+         Key       : Character;
+         Available : Boolean;
+      begin
+         Get_Immediate (Key, Available);
+         if Available then
+            case Key is
+               when 'r' | 'R' =>
+                  Command := Run_Command;
+               when 'c' | 'C' =>
+                  Command := Clear_Screen;
+               when others =>
+                  null;
+            end case;
+         end if;
+      end;
+
       if New_Fingerprint /= Old_Fingerprint then
-         Run_Command(Argument(1));
+         Command := Run_Command;
       end if;
+
+      case Command is
+         when Run_Command =>
+            Run_Command(Argument(1));
+            Command := None;
+         when Clear_Screen =>
+            Put(CLEAR_TERM);
+            Command := None;
+         when None =>
+            null;
+      end case;
    end loop;
 
 end Robot;
