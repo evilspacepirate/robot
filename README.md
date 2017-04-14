@@ -5,6 +5,10 @@ A utility that will run a command when a file timestamp has changed. Timestamps 
 
 ```
 robot <command> <file_pattern> [ .. <file_pattern> ]
+
+Run time commands:
+ R-key : Run command
+ C-key : Clear terminal
 ```
 
 # Example
