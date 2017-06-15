@@ -58,6 +58,30 @@ procedure Robot is
    use Source_Record_Vectors;
 
    -----------------
+   -- Get_Command --
+   -----------------
+
+   function Get_Command
+      return Command_Type
+   is
+      Key       : Character;
+      Available : Boolean;
+   begin
+         Get_Immediate (Key, Available);
+         if Available then
+            case Key is
+               when 'r' | 'R' =>
+                  return Run_Command;
+               when 'c' | 'C' =>
+                  return Clear_Screen;
+               when others =>
+                  return None;
+            end case;
+         end if;
+         return None;
+   end Get_Command;
+
+   -----------------
    -- Run_Command --
    -----------------
 
@@ -121,6 +145,40 @@ procedure Robot is
       end loop;
    end Stamp_Sources;
 
+   ----------------
+   -- Put_Config --
+   ----------------
+
+   procedure Put_Config is
+   begin
+      Put ("MONITORING: [");
+      for I in Natural range 2 .. Argument_Count loop
+         Put (Argument (I));
+      end loop;
+      Put ("] RUN ON MODIFY: [");
+      Put (Argument (1));
+      Put_Line ("]");
+   end Put_Config;
+
+   ---------------------
+   -- Execute Command --
+   ---------------------
+
+   procedure Execute_Command
+      (Command : Command_Type)
+   is
+   begin
+      case Command is
+         when Run_Command =>
+            Run_Command(Argument(1));
+         when Clear_Screen =>
+            Put(CLEAR_TERM);
+            Put_Config;
+         when None =>
+            null;
+      end case;
+   end Execute_Command;
+
    Old_Fingerprint : Source_Record_Vectors.Vector;
    New_Fingerprint : Source_Record_Vectors.Vector;
 
@@ -137,6 +195,8 @@ begin
       return;
    end if;
 
+   Put_Config;
+
    Stamp_Sources (New_Fingerprint);
 
    loop
@@ -145,37 +205,13 @@ begin
       New_Fingerprint.Clear;
       Stamp_Sources (New_Fingerprint);
 
-      declare
-         Key       : Character;
-         Available : Boolean;
-      begin
-         Get_Immediate (Key, Available);
-         if Available then
-            case Key is
-               when 'r' | 'R' =>
-                  Command := Run_Command;
-               when 'c' | 'C' =>
-                  Command := Clear_Screen;
-               when others =>
-                  null;
-            end case;
-         end if;
-      end;
+      Command := Get_Command;
 
       if New_Fingerprint /= Old_Fingerprint then
          Command := Run_Command;
       end if;
 
-      case Command is
-         when Run_Command =>
-            Run_Command(Argument(1));
-            Command := None;
-         when Clear_Screen =>
-            Put(CLEAR_TERM);
-            Command := None;
-         when None =>
-            null;
-      end case;
+      Execute_Command (Command);
    end loop;
 
 end Robot;
